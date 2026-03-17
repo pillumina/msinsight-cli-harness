@@ -1,3 +1,24 @@
+# Test files
+test_*.py
+debug_*.py
+capture_*.py
+
+# Temporary docs
+CLI_COMPLETION_STATUS.md
+CLI_CONNECTION_SUCCESS.md
+CONNECTION_TEST_RESULTS.md
+CONTROL_LAYER_SUMMARY.md
+DEPLOYMENT_GUIDE.md
+FINAL_SUMMARY.md
+GITHUB_PUSH_CONFIRMATION.md
+USAGE_SCENARIOS.md
+WORK_COMPLETED.md
+
+# Keep important docs
+!IMPLEMENTATION_ROADMAP.md
+!MSINSIGHT.md
+!USER_INSTALLATION_GUIDE.md
+
 # Python
 __pycache__/
 *.py[cod]
@@ -19,27 +40,18 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# OS
+.DS_Store
+Thumbs.db
 
-# Project specific
-agent-harness/cli_anything_msinsight.egg-info/
-agent-harness/agent-harness/
+# Project files
+*.db
+*.json.bak
