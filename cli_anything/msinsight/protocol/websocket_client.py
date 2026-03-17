@@ -52,21 +52,35 @@ class Request:
 @dataclass
 class Response:
     """WebSocket response message."""
-    id: int
     type: str
-    success: bool
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    request_id: int  # Maps to requestId in JSON
+    result: bool  # Not 'success'
+    body: Optional[Any] = None  # Not 'data', can be dict, list, or primitive
+    error: Optional[Dict[str, Any]] = None  # {code, message}
+    command: Optional[str] = None
+    module_name: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        """Alias for result for backward compatibility."""
+        return self.result
+
+    @property
+    def data(self) -> Optional[Any]:
+        """Alias for body for backward compatibility."""
+        return self.body
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Response':
         """Create Response from dictionary."""
         return cls(
-            id=data.get("id", 0),
             type=data.get("type", "response"),
-            success=data.get("success", False),
-            data=data.get("data"),
-            error=data.get("error")
+            request_id=data.get("requestId", data.get("id", 0)),  # Handle both formats
+            result=data.get("result", False),
+            body=data.get("body", data.get("data")),  # Handle both formats
+            error=data.get("error"),
+            command=data.get("command"),
+            module_name=data.get("moduleName")
         )
 
 

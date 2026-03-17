@@ -238,38 +238,85 @@ def import_cmd(ctx):
 @import_cmd.command("load-profiling")
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--format", type=click.Choice(["auto", "db", "json", "bin"]), default="auto", help="Data format")
+@click.option("--project-name", "-n", help="Project name (default: auto-detect)")
+@click.option("--rank-id", help="Rank ID for multi-rank data")
 @click.pass_context
-def import_load_profiling(ctx, path, format):
-    """Load profiling data from directory."""
-    if not session.project:
-        print_error("No project open. Create or open a project first.")
-        sys.exit(1)
-
+def import_load_profiling(ctx, path, format, project_name, rank_id):
+    """Load and import profiling data into MindStudio Insight."""
     try:
-        # For now, validate without backend connection
-        # TODO: Add backend connection when available
+        # First validate the data
         result = import_data.validate_data(path)
 
-        if result["valid"]:
+        if not result["valid"]:
+            raise Exception(result.get("error", "Validation failed"))
+
+        # Auto-generate project name if not provided
+        if not project_name:
+            from pathlib import Path
+            project_name = Path(path).stem
+
+        # Import data to backend if connected
+        if session.connection and session.connection.is_connected():
+            from cli_anything.msinsight.core.data_import import DataImporter
+
+            print_info(f"Importing data to backend: {path}")
+            importer = DataImporter(session.connection)
+
+            import_result = importer.import_profiling_data(
+                project_name=project_name,
+                data_path=path,
+                rank_id=rank_id,
+                is_new_project=True,
+                timeout=120.0
+            )
+
+            # Create or update project
+            if not session.project:
+                from cli_anything.msinsight.core.project import create_project
+                session.project = create_project(name=project_name)
+
             # Add to project data sources
             session.project.data_sources.append({
                 "type": "profiling",
                 "path": path,
                 "format": format,
-                "files": result["files"]
+                "files": result["files"],
+                "import_result": import_result
             })
             session.project.modified = True
 
             if ctx.obj["json"]:
-                print_json({"status": "success", "result": result})
+                print_json({
+                    "status": "success",
+                    "validation": result,
+                    "import": import_result
+                })
             else:
-                print_success(f"Validated profiling data: {path}")
-                print_info(f"Found {result['total_files']} files")
+                print_success(f"Imported profiling data: {path}")
+                print_info(f"Project: {project_name}")
+                click.echo(f"Total files: {result['total_files']}")
                 for ftype, count in result["files"].items():
                     if count > 0:
                         click.echo(f"  - {ftype}: {count} files")
+
+                # Show import result
+                if import_result.get("cards"):
+                    click.echo(f"\nImported cards: {len(import_result['cards'])}")
+                    for card in import_result["cards"][:3]:  # Show first 3
+                        click.echo(f"  - {card.get('cardName', 'Unknown')}")
+
         else:
-            raise Exception(result.get("error", "Validation failed"))
+            # No backend connection, just validate
+            if ctx.obj["json"]:
+                print_json({"status": "validated", "result": result})
+            else:
+                print_warning("No backend connection. Data validated but not imported.")
+                print_info(f"Valid profiling data: {path}")
+                click.echo(f"Total files: {result['total_files']}")
+                for ftype, count in result["files"].items():
+                    if count > 0:
+                        click.echo(f"  - {ftype}: {count} files")
+
     except Exception as e:
         if ctx.obj["json"]:
             print_json({"status": "error", "error": str(e)})
