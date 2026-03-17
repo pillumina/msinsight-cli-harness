@@ -1,11 +1,11 @@
 ---
 name: cli-anything-msinsight
-description: Python API and CLI harness for controlling MindStudio Insight through AI agents - enables natural language control of performance analysis, timeline manipulation, and data queries
+description: CLI harness for controlling MindStudio Insight through AI agents - enables natural language control of performance analysis, timeline manipulation, and data queries via command-line interface
 ---
 
 # MindStudio Insight CLI Harness
 
-Python API and CLI harness for controlling MindStudio Insight performance analysis tool through AI agents.
+CLI harness for controlling MindStudio Insight performance analysis tool through AI agents using command-line interface.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ User Natural Language
         ↓
   Skill (this file)
         ↓
- Python API / CLI
+    CLI Commands
         ↓
  WebSocket Protocol
         ↓
@@ -25,21 +25,20 @@ User Natural Language
 
 ## Core Components
 
-### 1. Protocol Layer
-WebSocket client for backend communication:
-- Connect to MindStudio Insight backend (port 9000)
-- Send commands and receive responses
-- Protocol analyzer for debugging
+### 1. CLI Entry Point
+Command-line interface with REPL mode:
+- `cli-anything-msinsight` - Main CLI command
+- Interactive REPL mode for multi-step operations
+- JSON output support with `--json` flag
 
-### 2. Control Layer
-High-level control APIs:
-- **TimelineController**: Timeline manipulation (zoom, pan, pin swimlanes, compare ranks)
-- **DataQuery**: Data queries (operators, memory, communication, bottleneck analysis)
-
-### 3. Data Import
-Import profiling data:
-- Single-rank and multi-rank data import
-- Project management
+### 2. Command Groups
+- **import**: Data import commands
+- **timeline**: Timeline analysis and control
+- **operator**: Operator analysis
+- **memory**: Memory analysis
+- **export**: Report generation
+- **project**: Project management
+- **session**: Session management
 
 ## Installation
 
@@ -59,100 +58,114 @@ pip install -e .
 
 ## Usage for AI Agents
 
-### Python API (Recommended)
+### CLI Commands (Recommended)
 
-```python
-from cli_anything.msinsight.protocol import MindStudioWebSocketClient
-from cli_anything.msinsight.control import TimelineController, DataQuery
-from cli_anything.msinsight.core.data_import import DataImporter
+**Important**: Always use CLI commands, not Python API.
 
-# 1. Connect to backend (close GUI first - single connection limit)
-client = MindStudioWebSocketClient(port=9000)
-client.connect()
+#### 1. Start CLI and Import Data
 
-# 2. Import data
-importer = DataImporter(client)
-importer.import_profiling_data(
-    project_name="MyProject",
-    data_path="/path/to/profiling/data",
-    is_new_project=True
-)
+```bash
+# Start CLI (close MindStudio Insight GUI first - single connection limit)
+cli-anything-msinsight
 
-# 3. Query data
-query = DataQuery(client)
-top_operators = query.get_top_n_operators(n=10, metric="duration")
-memory_summary = query.get_memory_summary()
+# Import profiling data
+msinsight> import load-profiling /path/to/profiling/data --project-name MyProject
 
-# 4. Control timeline
-timeline = TimelineController(client)
-timeline.zoom_to_time(0, 1000, unit="ms")
-timeline.pin_swimlanes(["rank 0", "rank 1"])
-timeline.compare_ranks(["rank 0", "rank 1"])
-
-# 5. Disconnect
-client.disconnect()
+# Or import multi-rank data
+msinsight> import load-profiling /path/to/rank0 --project-name MyProject
+msinsight> import load-profiling /path/to/rank1 --project-name MyProject
 ```
 
-### Key Methods
+#### 2. Query Data
 
-#### DataQuery
-```python
-# Operator queries
-query.get_top_n_operators(n=10, metric="duration")
-query.get_operator_by_id(operator_id="...")
-query.get_operator_statistics()
+```bash
+# Get top N operators by duration
+msinsight> operator list --sort duration
 
-# Memory queries
-query.get_memory_summary()
-query.get_memory_timeline()
-query.get_memory_leaks()
+# Get memory summary
+msinsight> memory summary
 
-# Communication queries
-query.get_communication_matrix()
-query.get_communication_hotspots(n=10)
+# Get project info
+msinsight> project info
 
-# Analysis
-query.get_bottleneck_analysis()
-query.get_optimization_suggestions()
+# Check session status
+msinsight> session status
 ```
 
-#### TimelineController
-```python
-# Navigation
-timeline.zoom_to_time(start=0, end=1000, unit="ms")
-timeline.go_to_operator(operator_id="...")
-timeline.reset_zoom()
+#### 3. Timeline Control
 
-# Swimlane control
-timeline.pin_swimlanes(lane_ids=["rank 0", "rank 1"])
-timeline.unpin_all_swimlanes()
-timeline.filter_swimlanes(filter_type="name", pattern="MatMul")
+```bash
+# Show timeline data
+msinsight> timeline show --start 0 --end 1000
 
-# Analysis
-timeline.compare_ranks(rank_ids=["rank 0", "rank 1"])
-
-# Query
-timeline.get_visible_range()
-timeline.get_swimlane_list()
+# Filter by rank
+msinsight> timeline show --rank 0
 ```
 
-#### DataImporter
-```python
-# Import data
-importer.import_profiling_data(
-    project_name="MyProject",
-    data_path="/path/to/data",
-    is_new_project=True
-)
+#### 4. Export Reports
 
-# Multi-rank
-importer.import_multi_rank_data(
-    project_name="MyProject",
-    data_paths=["/path/to/rank0", "/path/to/rank1"]
-)
+```bash
+# Generate report
+msinsight> export report /path/to/output.pdf --format pdf
+```
 
-# History
-importer.get_import_history()
+#### 5. Non-Interactive Mode (Single Commands)
+
+```bash
+# Run single command without entering REPL
+cli-anything-msinsight --json import load-profiling /path/to/data
+
+# Get project info in JSON format
+cli-anything-msinsight --json project info
+```
+
+### Key CLI Commands Reference
+
+#### Import Commands
+```bash
+import load-profiling <PATH>        # Import profiling data
+  --format <auto|db|json|bin>      # Data format (default: auto)
+  --project-name <NAME>            # Project name
+  --rank-id <ID>                   # Rank ID for multi-rank data
+
+import validate <PATH>              # Validate data files
+```
+
+#### Project Commands
+```bash
+project new                         # Create new project
+  --name <NAME>                    # Project name
+  --output <PATH>                  # Output file path
+
+project open <PATH>                 # Open existing project
+project info                        # Display project info
+project save                        # Save current project
+  --output <PATH>                  # Output file path
+```
+
+#### Analysis Commands
+```bash
+operator list                       # List all operators
+  --sort <duration|calls|memory>   # Sort by metric
+
+memory summary                      # Get memory usage summary
+  --rank <ID>                      # Filter by rank
+
+timeline show                       # Display timeline data
+  --start <TIME>                   # Start time (ms)
+  --end <TIME>                     # End time (ms)
+  --rank <ID>                      # Filter by rank
+```
+
+#### Export Commands
+```bash
+export report <OUTPUT>              # Generate analysis report
+  --format <pdf|html|json>         # Report format
+```
+
+#### Session Commands
+```bash
+session status                      # Show session status
 ```
 
 ## Important Notes
@@ -164,30 +177,14 @@ importer.get_import_history()
 
 ### Data Dependency
 ⚠️ **Most commands require data to be imported first**
-- Import data using `DataImporter.import_profiling_data()`
-- Then query and control operations will work
+- Import data using `import load-profiling` command
+- Then query and analysis operations will work
 
-### Protocol Format
-Request:
-```json
-{
-  "id": 1,
-  "type": "request",
-  "moduleName": "timeline",
-  "command": "zoomToRange",
-  "params": {...}
-}
-```
-
-Response:
-```json
-{
-  "type": "response",
-  "requestId": 1,
-  "result": true,
-  "body": {...}
-}
-```
+### Backend State
+⚠️ **Backend must be running before using CLI**
+- Start MindStudio Insight to launch backend
+- Close GUI but keep backend running
+- Or start backend standalone if supported
 
 ## For AI Agents
 
@@ -201,11 +198,11 @@ Use this skill when users want to:
 - Get optimization suggestions
 
 ### Best Practices
-1. **Always connect first**: `client.connect()`
-2. **Import data before queries**: Most commands need data
-3. **Handle connection errors**: Backend might not be running
-4. **Close GUI**: Single connection limit
-5. **Use context managers**: Automatic cleanup
+1. **Use CLI commands**: Execute commands via Bash tool, not Python API
+2. **Import data first**: Most commands need data to be imported
+3. **Close GUI**: Single connection limit
+4. **Use --json flag**: For structured output when needed
+5. **Check session status**: Use `session status` to verify state
 
 ### Example Agent Workflow
 
@@ -213,37 +210,74 @@ Use this skill when users want to:
 User: "帮我分析最慢的算子"
 
 AI Agent:
-1. Connect to backend
-   client = MindStudioWebSocketClient(port=9000)
-   client.connect()
+1. Check if backend is running
+   lsof -i :9000
 
-2. Import data (if not already)
-   importer = DataImporter(client)
-   importer.import_profiling_data(...)
+2. Start CLI and import data
+   cli-anything-msinsight --json import load-profiling /path/to/data --project-name MyProject
 
-3. Query data
-   query = DataQuery(client)
-   top_ops = query.get_top_n_operators(n=10)
+3. Query top operators
+   cli-anything-msinsight --json operator list --sort duration
 
-4. Return results to user
-   "最慢的10个算子是：
+4. Parse JSON response and return results to user
+   "最慢的算子是：
     1. MatMul_123: 45.23 ms
     2. Conv2d_456: 32.10 ms
     ..."
+```
 
-5. Disconnect
-   client.disconnect()
+### Example: Multi-step Analysis in REPL
+
+```bash
+# Start REPL
+cli-anything-msinsight
+
+# Create project
+msinsight> project new --name "Performance Analysis"
+
+# Import data
+msinsight> import load-profiling /data/rank_0 --project-name "Performance Analysis"
+
+# Check import
+msinsight> session status
+
+# Analyze
+msinsight> operator list --sort duration
+msinsight> memory summary
+
+# Export report
+msinsight> export report analysis_report.pdf --format pdf
+
+# Exit
+msinsight> exit
 ```
 
 ## Status
 
+- ✅ **CLI Interface**: Complete with REPL mode
 - ✅ **Protocol Layer**: Complete and verified
-- ✅ **Control Layer**: Complete (API ready)
-- ✅ **Data Import**: Complete
+- ✅ **Data Import**: Implementation complete
 - ✅ **Connection**: Verified (WebSocket + heartbeat)
-- ⏳ **Data Testing**: Needs real data validation
+- ⏳ **Backend Integration**: Needs testing with running backend
+- ⏳ **Data Queries**: Needs testing with real data
 
-**Overall**: 95% complete, core functionality implemented
+**Overall**: 80% complete, CLI structure ready, needs backend testing
+
+## Known Limitations
+
+1. **Backend Required**: Commands need MindStudio Insight backend running
+2. **Single Connection**: Only one client can connect at a time
+3. **Data Import First**: Most commands require imported data
+4. **Limited Backend Commands**: Some analysis commands may not be implemented in backend yet
+
+## Testing Status
+
+- ✅ CLI structure and commands
+- ✅ WebSocket connection
+- ✅ Heartbeat mechanism
+- ⏳ Data import with real data
+- ⏳ Query operations with real data
+- ⏳ Timeline control with real data
 
 ## Repository
 
