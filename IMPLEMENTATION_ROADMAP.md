@@ -1,17 +1,56 @@
 # 完全控制前端 - 实现路线图
 
+## 架构决策
+
+### ✅ 采用的架构
+```
+用户自然语言
+      ↓
+   AI Agent (通过 Skill)
+      ↓
+   CLI 命令 / 控制层 API
+      ↓
+   Backend WebSocket API
+      ↓
+   MindStudio Insight 前后端
+```
+
+**核心理念**:
+1. **AI Agent 提供自然语言理解** (不需要自己实现 NLP)
+2. **CLI 和控制层提供精确的编程接口**
+3. **Skill 连接 AI Agent 和 CLI**
+
+### ❌ 已删除的架构
+- NLP 层 (`nlp/` 目录): 与 AI Agent + Skill 功能重复
+- 自然语言识别: 由 AI Agent 提供，不需要重复实现
+
 ## 当前状态 vs 目标状态
 
-### ✅ 已完成（80%）
-- [x] CLI基础框架
-- [x] Python包结构
-- [x] WebSocket客户端框架
-- [x] 基础命令（project, import, session）
-- [x] JSON输出模式
-- [x] REPL接口
-- [x] 文档和测试
+### ✅ 已完成（Phase 1 & 2）
+- [x] **Protocol Layer**: WebSocket 客户端 + 协议分析器
+- [x] **Control Layer**: Timeline 控制器 + 数据查询
+- [x] **CLI 基础框架**: 项目管理、数据导入
+- [x] **文档和示例**: 控制层使用指南、协议捕获工具
+- [x] **架构清理**: 删除重复的 NLP 层
 
-### ⏳ 需要实现（20%）
+### ⏳ 需要实现（Phase 3-5）
+
+#### Phase 3: 协议验证 ⭐⭐⭐
+- [ ] 启动后端服务器
+- [ ] 使用协议捕获工具记录真实消息
+- [ ] 验证命令格式
+- [ ] 修正 API 实现
+
+#### Phase 4: CLI 集成
+- [ ] 添加 timeline 命令组
+- [ ] 添加 operator 命令组
+- [ ] 添加 memory/communication 命令
+- [ ] 完善 --json 输出
+
+#### Phase 5: Skill 完善
+- [ ] 更新 SKILL.md
+- [ ] 添加 AI Agent 使用示例
+- [ ] 添加最佳实践
 
 ---
 
