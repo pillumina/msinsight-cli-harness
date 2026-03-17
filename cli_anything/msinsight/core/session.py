@@ -20,6 +20,10 @@ class Session:
             "output_format": "table",
             "auto_save": False,
         }
+        # Backend connection
+        self.connection: Optional[Any] = None  # MindStudioWebSocketClient
+        self.rank_id: Optional[str] = None
+        self.device_id: Optional[str] = None
 
     def set_project(self, project: Optional[Project]) -> None:
         """Set current project."""

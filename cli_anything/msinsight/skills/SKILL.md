@@ -1,11 +1,11 @@
 ---
 name: cli-anything-msinsight
-description: ⚠️ WORK IN PROGRESS - WebSocket protocol works, but Control Layer API needs complete redesign to match backend actual commands (115+ handlers). Currently supports basic commands only (heartbeat, config, project list). Full timeline/operator/memory analysis capabilities not yet implemented.
+description: CLI tool for analyzing MindStudio Insight performance data. Supports performance statistics, operator analysis, memory analysis, and communication analysis through WebSocket connection to MindStudio Insight backend.
 ---
 
-# MindStudio Insight CLI Harness
+# MindStudio Insight CLI
 
-CLI harness for controlling MindStudio Insight performance analysis tool through AI agents using command-line interface.
+CLI tool for analyzing MindStudio Insight profiling data through command-line interface.
 
 ## Architecture
 
@@ -20,152 +20,165 @@ User Natural Language
         ↓
  WebSocket Protocol
         ↓
- MindStudio Insight Backend
+ MindStudio Insight Backend (port 9000)
 ```
-
-## Core Components
-
-### 1. CLI Entry Point
-Command-line interface with REPL mode:
-- `cli-anything-msinsight` - Main CLI command
-- Interactive REPL mode for multi-step operations
-- JSON output support with `--json` flag
-
-### 2. Command Groups
-- **import**: Data import commands
-- **timeline**: Timeline analysis and control
-- **operator**: Operator analysis
-- **memory**: Memory analysis
-- **export**: Report generation
-- **project**: Project management
-- **session**: Session management
 
 ## Installation
 
 ```bash
-# Clone repository
+# Clone and install
 git clone git@github.com:pillumina/msinsight-cli-harness.git
 cd msinsight-cli-harness
-
-# Install
 pip install -e .
 ```
 
 **Prerequisites**:
 - Python 3.10+
-- MindStudio Insight installed (for backend server)
-- websocket-client library
+- MindStudio Insight running (backend on port 9000)
+- Profiling data imported
 
 ## Usage for AI Agents
 
-### CLI Commands (Recommended)
-
-**Important**: Always use CLI commands, not Python API.
-
-#### 1. Start CLI and Import Data
+### Quick Start
 
 ```bash
-# Start CLI (close MindStudio Insight GUI first - single connection limit)
+# 1. Start backend (MindStudio Insight must be running on port 9000)
+# Close GUI first - only ONE WebSocket connection allowed
+
+# 2. Run CLI
 cli-anything-msinsight
 
-# Import profiling data
-msinsight> import load-profiling /path/to/profiling/data --project-name MyProject
+# 3. Connect to backend
+msinsight> connect --port 9000
 
-# Or import multi-rank data
-msinsight> import load-profiling /path/to/rank0 --project-name MyProject
-msinsight> import load-profiling /path/to/rank1 --project-name MyProject
+# 4. Use commands
+msinsight> summary statistics
+msinsight> operator categories
+msinsight> memory view
 ```
 
-#### 2. Query Data
+### Core Commands
+
+#### Connection Management
 
 ```bash
-# Get top N operators by duration
-msinsight> operator list --sort duration
+# Connect to backend
+cli-anything-msinsight connect --port 9000
 
-# Get memory summary
-msinsight> memory summary
+# Disconnect
+cli-anything-msinsight disconnect
 
-# Get project info
-msinsight> project info
-
-# Check session status
-msinsight> session status
+# Or in REPL mode:
+msinsight> connect
+msinsight> disconnect
 ```
 
-#### 3. Timeline Control
+#### Summary Analysis
 
 ```bash
-# Show timeline data
-msinsight> timeline show --start 0 --end 1000
+# Get performance statistics (most commonly used)
+cli-anything-msinsight --json summary statistics
 
-# Filter by rank
-msinsight> timeline show --rank 0
+# Get top N performance data
+cli-anything-msinsight --json summary top-n
+
+# With options
+cli-anything-msinsight summary statistics --time-flag step --cluster-path /
 ```
 
-#### 4. Export Reports
+#### Operator Analysis
 
 ```bash
-# Generate report
-msinsight> export report /path/to/output.pdf --format pdf
+# Get operator categories
+cli-anything-msinsight --json operator categories
+
+# Get operator statistics (paginated)
+cli-anything-msinsight --json operator statistics --page 1 --page-size 10
+
+# Get operator details
+cli-anything-msinsight --json operator details --op-type MatMul
 ```
 
-#### 5. Non-Interactive Mode (Single Commands)
+#### Memory Analysis
 
 ```bash
-# Run single command without entering REPL
-cli-anything-msinsight --json import load-profiling /path/to/data
+# Get memory view by type
+cli-anything-msinsight --json memory view --view-type type
 
-# Get project info in JSON format
-cli-anything-msinsight --json project info
+# Get operator memory size
+cli-anything-msinsight --json memory operator-size --view-type Overall
 ```
 
-### Key CLI Commands Reference
+#### Communication Analysis
 
-#### Import Commands
 ```bash
-import load-profiling <PATH>        # Import profiling data
-  --format <auto|db|json|bin>      # Data format (default: auto)
-  --project-name <NAME>            # Project name
-  --rank-id <ID>                   # Rank ID for multi-rank data
+# Get communication iterations
+cli-anything-msinsight --json communication iterations
 
-import validate <PATH>              # Validate data files
+# Get bandwidth for specific operator
+cli-anything-msinsight --json communication bandwidth --operator-name "hccl_broadcast"
 ```
 
-#### Project Commands
-```bash
-project new                         # Create new project
-  --name <NAME>                    # Project name
-  --output <PATH>                  # Output file path
+### CLI Options
 
-project open <PATH>                 # Open existing project
-project info                        # Display project info
-project save                        # Save current project
-  --output <PATH>                  # Output file path
+- `--json` - Output in JSON format (recommended for AI agents)
+- `--port` - Backend port (default: 9000)
+- `--help` - Show command help
+
+### Available Commands
+
+#### Connection
+- `connect` - Connect to backend
+- `disconnect` - Disconnect from backend
+
+#### Summary
+- `summary statistics` - Performance statistics
+- `summary top-n` - Top N performance data
+
+#### Operator
+- `operator categories` - Operator categories
+- `operator statistics` - Operator statistics
+- `operator details` - Operator details
+
+#### Memory
+- `memory view` - Memory view
+- `memory operator-size` - Operator memory size
+
+#### Communication
+- `communication iterations` - Communication iterations
+- `communication bandwidth` - Bandwidth information
+
+### AI Agent Workflow Example
+
 ```
+User: "帮我分析性能瓶颈" (Help me analyze performance bottlenecks)
 
-#### Analysis Commands
-```bash
-operator list                       # List all operators
-  --sort <duration|calls|memory>   # Sort by metric
+AI Agent:
+1. Check if backend is running
+   $ lsof -i :9000
 
-memory summary                      # Get memory usage summary
-  --rank <ID>                      # Filter by rank
+2. Connect and get statistics
+   $ cli-anything-msinsight --json summary statistics
 
-timeline show                       # Display timeline data
-  --start <TIME>                   # Start time (ms)
-  --end <TIME>                     # End time (ms)
-  --rank <ID>                      # Filter by rank
-```
+3. Parse JSON and identify bottlenecks
+   {
+     "compute_time": 1234.5,
+     "communication_time": 567.8,
+     "total_time": 1802.3
+   }
 
-#### Export Commands
-```bash
-export report <OUTPUT>              # Generate analysis report
-  --format <pdf|html|json>         # Report format
-```
+4. Get operator breakdown
+   $ cli-anything-msinsight --json operator statistics --page 1 --page-size 5
 
-#### Session Commands
-```bash
-session status                      # Show session status
+5. Report findings
+   "分析结果：
+   - 计算时间占比: 68.5%
+   - 通信时间占比: 31.5%
+   - Top 3 慢算子:
+     1. MatMul: 450.2 ms
+     2. Conv2D: 320.8 ms
+     3. LayerNorm: 180.5 ms
+   建议: 优化 MatMul 和 Conv2D 算子"
 ```
 
 ## Important Notes
@@ -176,165 +189,89 @@ session status                      # Show session status
 - Cannot use CLI and GUI simultaneously
 
 ### Data Dependency
-⚠️ **Most commands require data to be imported first**
-- Import data using `import load-profiling` command
-- Then query and analysis operations will work
+⚠️ **Most commands require profiling data to be imported first**
+- Import data using MindStudio Insight GUI
+- Or use backend import API (advanced)
 
 ### Backend State
-⚠️ **Backend must be running before using CLI**
+⚠️ **Backend must be running on port 9000**
 - Start MindStudio Insight to launch backend
-- Close GUI but keep backend running
-- Or start backend standalone if supported
+- Close GUI but keep backend process running
 
-## For AI Agents
+## When to Use This Skill
 
-### When to Use This Skill
 Use this skill when users want to:
-- Analyze MindStudio Insight profiling data
-- Control timeline visualization
-- Query performance metrics
-- Identify bottlenecks
-- Compare ranks
-- Get optimization suggestions
+- Analyze MindStudio Insight profiling data programmatically
+- Get performance statistics and bottlenecks
+- Query operator/memory/communication metrics
+- Automate performance analysis
+- Compare performance across runs
 
-### Best Practices
-1. **Use CLI commands**: Execute commands via Bash tool, not Python API
-2. **Import data first**: Most commands need data to be imported
-3. **Close GUI**: Single connection limit
-4. **Use --json flag**: For structured output when needed
-5. **Check session status**: Use `session status` to verify state
+## Best Practices for AI Agents
 
-### Example Agent Workflow
+1. **Always use --json flag** for structured output
+2. **Check connection first** with `connect` command
+3. **Handle errors gracefully** - backend may not have all data types
+4. **Use pagination** for large datasets (--page, --page-size)
+5. **Cache connection** - don't reconnect for every command
 
-```
-User: "帮我分析最慢的算子"
+## Common Issues
 
-AI Agent:
-1. Check if backend is running
-   lsof -i :9000
+### "Not connected to backend"
+**Solution**: Run `connect` command first
 
-2. Start CLI and import data
-   cli-anything-msinsight --json import load-profiling /path/to/data --project-name MyProject
+### "No rank ID available"
+**Solution**: Ensure profiling data is imported in backend
 
-3. Query top operators
-   cli-anything-msinsight --json operator list --sort duration
+### "Request parameter exception"
+**Solution**: Check required parameters (use --help)
 
-4. Parse JSON response and return results to user
-   "最慢的算子是：
-    1. MatMul_123: 45.23 ms
-    2. Conv2d_456: 32.10 ms
-    ..."
-```
+### "No data available"
+**Solution**: Some commands require specific data types (HCCL, static memory, etc.)
 
-### Example: Multi-step Analysis in REPL
+## Implementation Status
 
-```bash
-# Start REPL
-cli-anything-msinsight
+### ✅ Implemented & Working
+- **Summary Module**: statistics, top-n data
+- **Operator Module**: categories, statistics, details
+- **Memory Module (dynamic)**: view, operator-size
+- **Connection**: connect, disconnect
 
-# Create project
-msinsight> project new --name "Performance Analysis"
-
-# Import data
-msinsight> import load-profiling /data/rank_0 --project-name "Performance Analysis"
-
-# Check import
-msinsight> session status
-
-# Analyze
-msinsight> operator list --sort duration
-msinsight> memory summary
-
-# Export report
-msinsight> export report analysis_report.pdf --format pdf
-
-# Exit
-msinsight> exit
-```
-
-## Status
-
-✅ **Phase 1 Complete - 34 Commands Implemented & Core Functionality Validated**
-
-### ✅ Completed & Verified:
-- **Protocol Layer**: WebSocket connection, message format, heartbeat ✅
-- **Basic Commands**: `heartCheck`, `moduleConfig/get`, `files/getProjectExplorer` ✅
-- **Connection Management**: Connect, disconnect, automatic reconnect ✅
-- **Request/Response Format**: Matches backend expectations ✅
-- **Control Layer API**: Complete redesign based on actual backend commands ✅
-- **Phase 1 Commands**: 34 commands across 4 modules implemented ✅
-
-### 📦 Implemented Modules:
-
-**Summary Module (12 commands)** ✅
-- Core: `get_statistics`, `get_top_n_data`, `get_compute_details`, `get_communication_details`
-- Advanced: `get_model_info`, `get_expert_hotspot`, `get_parallel_strategy`, `get_pipeline_timeline`, `get_parallelism_arrangement`, `get_parallelism_performance`, `get_slow_rank_advisor`
-
-**Operator Module (6 commands)** ✅
-- `get_category_info`, `get_statistic_info`, `get_operator_details`, `get_compute_unit_info`, `get_all_operator_details`, `export_operator_details`
-
-**Memory Module (6 commands)** ✅
-- Dynamic: `get_memory_view`, `get_memory_operator_size`
-- Static: `get_static_operator_graph`, `get_static_operator_list`, `get_static_operator_size`, `find_memory_slice`
-
-**Communication Module (10 commands)** ✅
-- Core: `get_bandwidth`, `get_operator_lists`, `get_operator_details`
-- Advanced: `get_distribution_data`, `get_iterations`, `get_matrix_sort_operator_names`, `get_duration_list`, `get_matrix_group`, `get_matrix_bandwidth`, `get_communication_advisor`
-
-### 📊 Validation Results:
-- **Summary + Operator**: 100% success rate (10/10 tested) ✅
-- **Memory (dynamic)**: 100% success rate (2/2 tested) ✅
+### ⚠️ Requires Specific Data
 - **Memory (static)**: Requires static memory profiling data
-- **Communication**: Requires HCCL communication data
+- **Communication**: Requires HCCL communication operations
 
-### 📈 Implementation Progress:
+## Technical Details
+
+### Backend Protocol
+- WebSocket on port 9000
+- JSON message format
+- Automatic rank discovery
+
+### Command Structure
 ```
-Protocol Layer:     ████████████████████ 100% ✅
-Phase 1 Commands:   ████████████████████ 100% ✅ (34/34)
-Core Functionality: ████████████████████ 100% ✅ (Summary+Operator)
-Testing:            ████████████████░░░░  80% ✅
-Documentation:      ████████████████░░░░  80% ✅
+cli-anything-msinsight [OPTIONS] COMMAND [ARGS]...
+
+Commands:
+  connect         Connect to backend
+  disconnect      Disconnect
+  summary         Summary analysis
+  operator        Operator analysis
+  memory          Memory analysis
+  communication   Communication analysis
 ```
 
-**Phase 1 Completion**: 100% - All core functionality implemented and validated
-
-### ⏳ Phase 2 (Future Work):
-- Step Trace module commands
-- Resource module commands
-- Advisor module commands
-- Additional analysis commands
-
-## Known Limitations
-
-1. **Backend Required**: Commands need MindStudio Insight backend running
-2. **Single Connection**: Only one client can connect at a time
-3. **Data Import First**: Most commands require imported data
-4. **Limited Backend Commands**: Some analysis commands may not be implemented in backend yet
-
-## Testing Status
-
-- ✅ CLI structure and commands
-- ✅ WebSocket connection
-- ✅ Heartbeat mechanism
-- ⏳ Data import with real data
-- ⏳ Query operations with real data
-- ⏳ Timeline control with real data
+### Output Formats
+- **JSON** (`--json` flag): Structured data for AI agents
+- **Table** (default): Human-readable format
 
 ## Repository
 
 https://github.com/pillumina/msinsight-cli-harness
 
-## Documentation
-
-- `README.md` - Quick start guide
-- `IMPLEMENTATION_ROADMAP.md` - Development roadmap
-- `USER_INSTALLATION_GUIDE.md` - Installation guide
-- `MSINSIGHT.md` - API documentation
-- `examples/CONTROL_LAYER_GUIDE.md` - Usage examples
-
 ## Version
 
-1.0.0
+2.0.0 - With real backend integration via api_v2.py
 
 ## License
 
