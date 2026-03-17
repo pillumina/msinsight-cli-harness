@@ -219,8 +219,8 @@ class SummaryController:
         rank_id: str,
         time_flag: str,
         cluster_path: str = "",
-        current_page: int = 0,
-        page_size: int = 0,
+        current_page: int = 1,
+        page_size: int = 10,
         order_by: str = "",
         order: str = "",
         db_path: Optional[str] = None
@@ -233,12 +233,12 @@ class SummaryController:
 
         Args:
             rank_id: Rank ID (required)
-            time_flag: Time flag (required)
-            cluster_path: Cluster path (required, can be empty)
-            current_page: Current page number (default: 0)
-            page_size: Page size (default: 0, meaning all data)
-            order_by: Field to order by
-            order: Sort order (asc/desc)
+            time_flag: Time flag (required, e.g., "step", "iteration")
+            cluster_path: Cluster path (optional)
+            current_page: Current page number (default: 1, must be > 0)
+            page_size: Page size (default: 10, must be > 0)
+            order_by: Field to order by (optional)
+            order: Sort order (asc/desc, optional)
             db_path: Optional database path
 
         Returns:
@@ -270,8 +270,8 @@ class SummaryController:
         rank_id: str,
         time_flag: str = "HCCL",
         cluster_path: str = "",
-        current_page: int = 0,
-        page_size: int = 0,
+        current_page: int = 1,
+        page_size: int = 10,
         order_by: str = "",
         order: str = ""
     ) -> Dict[str, Any]:
@@ -283,12 +283,12 @@ class SummaryController:
 
         Args:
             rank_id: Rank ID (required)
-            time_flag: Time flag (required, default: "HCCL")
-            cluster_path: Cluster path (required, can be empty)
-            current_page: Current page number (default: 0)
-            page_size: Page size (default: 0, meaning all data)
-            order_by: Field to order by
-            order: Sort order (asc/desc)
+            time_flag: Time flag (default: "HCCL", must be non-empty)
+            cluster_path: Cluster path (optional)
+            current_page: Current page number (default: 1, must be > 0)
+            page_size: Page size (default: 10, must be > 0)
+            order_by: Field to order by (optional)
+            order: Sort order (asc/desc, optional)
 
         Returns:
             Communication details including bandwidth, matrix
@@ -697,9 +697,9 @@ class OperatorController:
     def get_statistic_info(
         self,
         rank_id: str,
-        group: str = "Operator",
+        group: str = "Operator Type",
         device_id: str = "",
-        top_k: int = 0,
+        top_k: int = -1,
         current_page: int = 1,
         page_size: int = 0,
         order_by: str = "",
@@ -715,8 +715,9 @@ class OperatorController:
 
         Args:
             rank_id: Rank ID (required)
-            group: Group type (Operator, Operator Type, Input Shape)
+            group: Group type ("Operator Type", "Input Shape", "Communication Operator Type")
             device_id: Device ID (optional)
+            top_k: Top K results (default: -1 for all, must be != 0)
             top_k: Top K results (default: 0)
             current_page: Current page (default: 1)
             page_size: Page size (default: 0, meaning all)
@@ -757,7 +758,7 @@ class OperatorController:
         op_type: str = "",
         op_name: str = "",
         shape: str = "",
-        group: str = "Operator",
+        group: str = "Operator Type",
         device_id: str = "",
         top_k: int = 0,
         current_page: int = 1,
@@ -773,10 +774,10 @@ class OperatorController:
 
         Args:
             rank_id: Rank ID (required)
-            op_type: Operator type (optional)
-            op_name: Operator name (optional)
+            op_type: Operator type (required if op_name not provided)
+            op_name: Operator name (required if op_type not provided)
             shape: Input shape (optional)
-            group: Group type (Operator, Operator Type, Input Shape)
+            group: Group type ("Operator Type", "Input Shape", "Communication Operator Type")
             device_id: Device ID (optional)
             top_k: Top K results
             current_page: Current page

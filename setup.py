@@ -67,7 +67,7 @@ setup(
     # Entry points - makes CLI available in PATH
     entry_points={
         "console_scripts": [
-            "cli-anything-msinsight=cli_anything.msinsight.msinsight_cli:main",
+            "cli-anything-msinsight=cli_anything.msinsight.msinsight_cli_v2:cli",
         ],
     },
 

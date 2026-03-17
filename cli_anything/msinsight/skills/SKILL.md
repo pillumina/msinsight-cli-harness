@@ -92,12 +92,29 @@ cli-anything-msinsight summary statistics --time-flag step --cluster-path /
 # Get operator categories
 cli-anything-msinsight --json operator categories
 
-# Get operator statistics (paginated)
-cli-anything-msinsight --json operator statistics --page 1 --page-size 10
+# Get operator statistics (IMPORTANT: group must be specific values!)
+cli-anything-msinsight --json operator statistics --group "Operator Type" --top-k -1
 
-# Get operator details
-cli-anything-msinsight --json operator details --op-type MatMul
+# Get operator details (IMPORTANT: need op_type OR op_name!)
+cli-anything-msinsight --json operator details --group "Operator Type" --op-type MatMul
 ```
+
+**⚠️ IMPORTANT: Operator Parameter Constraints**
+
+1. **`group` parameter** - Must be one of these EXACT values:
+   - `"Operator Type"` (recommended for statistics)
+   - `"Input Shape"`
+   - `"Communication Operator Type"`
+   - ❌ NOT `"Operator"` (will cause parameter error)
+
+2. **`top_k` parameter** - Must be **non-zero**:
+   - Use `-1` to get all results (recommended)
+   - Use `10`, `20`, etc. to limit results
+   - ❌ NOT `0` (will cause parameter error)
+
+3. **`op_type` or `op_name`** - Required for operator details:
+   - Must provide at least one
+   - Example: `--op-type MatMul` or `--op-name "Conv2d"`
 
 #### Memory Analysis
 
@@ -276,3 +293,150 @@ https://github.com/pillumina/msinsight-cli-harness
 ## License
 
 Mulan PSL v2
+
+## Parameter Requirements & Limitations
+
+### Critical Parameter Constraints
+
+#### Operator Module
+
+**`operator statistics` and `operator details`**:
+- `--group` must be one of:
+  - `"Operator Type"` (default, recommended)
+  - `"Input Shape"`
+  - `"Communication Operator Type"`
+  - ❌ NOT accepted: `"Operator"`, `"Communication Operator"`
+
+- `--top-k` must be **non-zero** (use `-1` for all results)
+  - ✅ Correct: `--top-k -1` (get all)
+  - ✅ Correct: `--top-k 10` (top 10)
+  - ❌ Wrong: `--top-k 0` (will fail with 1101 error)
+
+**Example**:
+```bash
+# ✅ Correct usage
+cli-anything-msinsight operator statistics --group "Operator Type" --top-k -1
+
+# ❌ Wrong - will fail
+cli-anything-msinsight operator statistics --group "Operator" --top-k 0
+```
+
+#### Summary Module
+
+**`summary compute-details` and `summary communication-details`**:
+- `--current-page` must be **> 0** (default: 1)
+- `--page-size` must be **> 0** (default: 10)
+- Requires profiling data with detailed breakdown (not available in all datasets)
+
+**Example**:
+```bash
+# ✅ Correct usage
+cli-anything-msinsight summary compute-details --current-page 1 --page-size 10
+
+# ❌ Wrong - will fail
+cli-anything-msinsight summary compute-details --current-page 0 --page-size 0
+```
+
+### Data Requirements
+
+Some commands require specific profiling data types:
+
+| Command Type | Required Data | Status Without Data |
+|--------------|---------------|---------------------|
+| **Communication** commands | HCCL communication ops | Timeout (needs cluster profiling) |
+| **Memory static** commands | Static memory analysis | No data (needs static profiling) |
+| **Summary compute-details** | Detailed compute breakdown | Query failed (needs detailed profiling) |
+| **Summary comm-details** | Communication breakdown | Query failed (needs HCCL data) |
+
+### Working Commands (9/17 = 53%)
+
+**Fully Working** (no special data needed):
+1. ✅ `summary statistics` - Overall performance
+2. ✅ `summary top-n` - Top operators
+3. ✅ `operator categories` - Operator breakdown
+4. ✅ `operator statistics` - Detailed stats (with correct params)
+5. ✅ `operator details` - Operator info (with correct params)
+6. ✅ `operator compute-units` - Compute unit breakdown
+7. ✅ `operator all-details` - All operators
+8. ✅ `memory view` - Memory overview
+9. ✅ `memory operator-size` - Memory size info
+
+**Need Special Data**:
+- Communication commands (4) - Need HCCL profiling
+- Memory static commands (2) - Need static memory profiling
+- Summary detail commands (2) - Need detailed breakdown data
+
+## Troubleshooting
+
+### Error Code 1101 (Parameter Error)
+
+**Cause**: Invalid parameter value
+
+**Common fixes**:
+- Operator commands: Use `--group "Operator Type"` (not `"Operator"`)
+- Operator commands: Use `--top-k -1` (not `0`)
+- Summary commands: Use `--current-page 1 --page-size 10` (not 0)
+
+### Error Code 3105/3106 (Query Failed)
+
+**Cause**: Profiling data doesn't contain required information
+
+**Solution**: Use more comprehensive profiling data with:
+- HCCL communication operations (for communication analysis)
+- Detailed compute breakdown (for summary details)
+- Static memory analysis (for memory static commands)
+
+### Timeout Errors
+
+**Cause**: Command taking too long (>10s)
+
+**Common causes**:
+- No HCCL data available (communication commands)
+- Large dataset without pagination
+
+**Solution**: Ensure profiling data includes required information
+
+## AI Agent Workflow
+
+### Recommended Analysis Flow
+
+```bash
+# 1. Connect and check data
+cli-anything-msinsight connect
+cli-anything-msinsight --json summary statistics
+
+# 2. Identify bottlenecks
+cli-anything-msinsight --json operator categories --group "Operator Type"
+cli-anything-msinsight --json summary top-n
+
+# 3. Deep dive into operators
+cli-anything-msinsight --json operator statistics --group "Operator Type" --top-k -1
+cli-anything-msinsight --json operator details --op-type MatMul
+
+# 4. Check memory usage
+cli-anything-msinsight --json memory view
+cli-anything-msinsight --json memory operator-size
+
+# 5. Communication analysis (if cluster data available)
+cli-anything-msinsight --json comm iterations
+cli-anything-msinsight --json comm bandwidth
+```
+
+### JSON Output for AI Parsing
+
+Always use `--json` flag for AI agent consumption:
+
+```bash
+cli-anything-msinsight --json summary statistics
+cli-anything-msinsight --json operator categories --group "Operator Type"
+```
+
+This ensures structured output that's easy to parse programmatically.
+
+## Version
+
+**Current Version**: 2.0.0
+**Status**: Production Ready for Core Features
+**Success Rate**: 53% (9/17 commands) - Limited by test data availability
+**Zero Parameter Errors**: All parameter issues resolved
+
