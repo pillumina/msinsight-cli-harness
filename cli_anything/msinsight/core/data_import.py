@@ -60,10 +60,11 @@ class DataImporter:
             raise FileNotFoundError(f"Data path not found: {data_path}")
 
         # Prepare import parameters
+        # projectAction: 0 = TRANSFER_PROJECT (new), 1 = ADD_FILE (add to existing)
         params = {
             "projectName": project_name,
             "path": [str(path.absolute())],
-            "projectAction": "NEW" if is_new_project else "OPEN",
+            "projectAction": 0 if is_new_project else 1,
             "isConflict": False
         }
 

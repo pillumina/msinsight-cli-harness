@@ -35,6 +35,8 @@ class Request:
     module_name: str = ""
     command: str = ""
     params: Optional[Dict[str, Any]] = None
+    file_id: str = ""
+    project_name: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -42,10 +44,14 @@ class Request:
             "id": self.id,
             "type": self.type,
             "moduleName": self.module_name,
-            "command": self.command
+            "command": self.command,
+            "fileId": self.file_id,
+            "projectName": self.project_name,
         }
-        if self.params:
+        if self.params is not None:
             result["params"] = self.params
+        else:
+            result["params"] = {}
         return result
 
 
@@ -200,39 +206,40 @@ class MindStudioWebSocketClient:
             params=params
         )
 
-        # Create response queue for this request
-        response_queue = queue.Queue()
-        self.pending_responses[request.id] = response_queue
-
         try:
-            # Send request
-            message = json.dumps(request.to_dict())
+            # Send request as plain JSON (like GUI does)
+            json_body = json.dumps(request.to_dict())
             if self.log_messages:
-                print(f"[WS →] {message}")
+                print(f"[WS →] {json_body}")
 
-            self.ws.send(message)
+            self.ws.send(json_body)
 
             # Wait for response
-            try:
-                response_data = response_queue.get(timeout=timeout)
-                response = Response.from_dict(response_data)
+            response_text = self.ws.recv()
 
-                if not response.success:
-                    raise MsInsightBackendError(
-                        response.error or "Unknown backend error"
-                    )
+            # Parse LSP-style response (skip Content-Length header)
+            if response_text.startswith("Content-Length:"):
+                header_end = response_text.find("\r\n\r\n")
+                if header_end != -1:
+                    response_text = response_text[header_end + 4:]
 
-                return response
+            response_data = json.loads(response_text)
+            if self.log_messages:
+                print(f"[WS ←] {json.dumps(response_data)}")
 
-            except queue.Empty:
+            response = Response.from_dict(response_data)
+
+            if not response.success:
                 raise MsInsightBackendError(
-                    f"Request timed out after {timeout} seconds"
+                    response.error or "Unknown backend error"
                 )
 
-        finally:
-            # Cleanup
-            if request.id in self.pending_responses:
-                del self.pending_responses[request.id]
+            return response
+
+        except queue.Empty:
+            raise MsInsightBackendError(
+                f"Request timed out after {timeout} seconds"
+            )
 
     def send_raw(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """
