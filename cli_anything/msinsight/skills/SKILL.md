@@ -1,6 +1,6 @@
 ---
 name: cli-anything-msinsight
-description: CLI harness for controlling MindStudio Insight through AI agents - enables natural language control of performance analysis, timeline manipulation, and data queries via command-line interface
+description: ⚠️ WORK IN PROGRESS - WebSocket protocol works, but Control Layer API needs complete redesign to match backend actual commands (115+ handlers). Currently supports basic commands only (heartbeat, config, project list). Full timeline/operator/memory analysis capabilities not yet implemented.
 ---
 
 # MindStudio Insight CLI Harness
@@ -254,14 +254,27 @@ msinsight> exit
 
 ## Status
 
-- ✅ **CLI Interface**: Complete with REPL mode
-- ✅ **Protocol Layer**: Complete and verified
-- ✅ **Data Import**: Implementation complete
-- ✅ **Connection**: Verified (WebSocket + heartbeat)
-- ⏳ **Backend Integration**: Needs testing with running backend
-- ⏳ **Data Queries**: Needs testing with real data
+⚠️ **Work in Progress - Protocol Layer Complete, Control Layer Needs Reimplementation**
 
-**Overall**: 80% complete, CLI structure ready, needs backend testing
+### ✅ Completed (Verified):
+- **Protocol Layer**: WebSocket connection, message format, heartbeat
+- **Basic Commands**: `heartCheck`, `moduleConfig/get`, `files/getProjectExplorer`
+- **Connection Management**: Connect, disconnect, reconnect
+
+### ⚠️ Known Issues:
+- **Control Layer API Mismatch**: Designed commands do not match backend actual commands
+  - My API: `getTopNOperators`, `getMemorySummary`, `zoomToRange`
+  - Backend: `op/statistic/info`, `mem/scope/*`, `thread/traces`, etc.
+- **Needs Complete Redesign**: Control Layer must be reimplemented based on actual backend commands
+- **Backend has 115+ handlers**: Need to map each to CLI commands
+
+### ⏳ Not Yet Implemented:
+- Timeline manipulation (zoom, pan, filter)
+- Data queries (operators, memory, communication)
+- Analysis commands
+- Export/report generation
+
+**Overall Progress**: 40% - Protocol layer works, Control layer needs complete redesign
 
 ## Known Limitations
 
